@@ -1,0 +1,2 @@
+# PlaySoundSpecifiedFrequency
+Web上で指定された周波数の音を流す
