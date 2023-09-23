@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>指定周波数の音を鳴らす</title>
+<style type="text/css">
+        html {
+            font-size: 23px;
+            color: #000;
+            font-family: "Helvetica Neue", Arial,"Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", Meiryo, sans-serif;
+            background: #30436e;
+            -webkit-text-size-adjust: none;
+            margin: 0;
+            padding: 0;
+            transition: 0.4s;/*アニメーションが完了するまでにかかる時間*/
+        }
+        body{
+            margin: 0;
+            padding: 0;
+        }
+        b {
+            font-size: 3rem;
+            margin: 0 10px;
+        }
+        h1 {
+            font-size: 1rem;
+            font-weight: normal;
+            margin: 0.7rem 0 0 0;
+            text-align: center;
+        }
+        h1.title {
+            font-size: 1.2rem;
+            font-weight: 900;
+            text-align: center;
+        }
+        .parent {
+            width: 100%;
+            height: 100%;
+        }
+        .box {
+            margin: 10% 30% 0 30%;
+            padding: 1.5rem;
+            background: #fff;
+            -webkit-box-shadow: 0 8px 17px 2px rgb(0 0 0 / 14%),0 3px 14px 2px rgb(0 0 0 / 12%), 0 5px 5px -3px rgb(0 0 0 / 20%);
+            box-shadow: 0 8px 17px 2px rgb(0 0 0 / 14%), 0 3px 14px 2px rgb(0 0 0 / 12%),0 5px 5px -3px rgb(0 0 0 / 20%);
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: 4.5rem auto 4.5rem;
+            grid-template-rows: 2rem 2rem auto
+        }
+        input[type="text"] {
+            margin: 0.5rem 0;
+            padding: 5px;
+            width: 100%;
+            height: 1.5rem;
+            font-size: 1rem;
+            border: 1px solid #808080;
+            box-sizing: border-box;
+            text-align: right;
+        }
+        input[type="text"]:focus {
+            border: 2px solid #5f78b4;
+            outline: 0;
+        }
+        input[type="text"]:disabled {
+            background: #e9e9e9;
+        }
+        .item1 {
+            grid-column: 1 / 4;
+            margin: 0.5rem 0 0 0;
+            height: 2rem;
+            font-size: 1rem;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN","Hiragino Sans", "BIZ UDPGothic", Meiryo, sans-serif;
+            line-height: normal;
+            width: 100%;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-transition: all 0.3s;
+            transition: all 0.3s;
+            text-align: center;
+            vertical-align: middle;
+            text-decoration: none;
+            color: #fff;
+            font-weight: 900;
+            background-color: #5f78b4;
+            border-radius: 10px;
+            border: 0px;
+            box-sizing: border-box;
+            outline: none;
+            transition: 0.2s;
+        }
+        .item1:hover{
+            background-color: #8f8f8f ! important;
+        }
+        .item2 {
+            grid-column: 2 / 4;
+        }
+        .cp_ipselect {
+            display: inline-block;
+            overflow: hidden;
+            width: 100%;
+            text-align: center;
+            margin: 0.5rem 0 0 5px;
+        }
+        .cp_ipselect select {
+            width: 100%;
+            height: 2rem;
+            font-size: 1rem;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", Meiryo, sans-serif;
+            padding-right: 1em;
+            cursor: pointer;
+            text-indent: 0.01px;
+            text-overflow: ellipsis;
+            border: none;
+            outline: none;
+            background: transparent;
+            background-image: none;
+            box-shadow: none;
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
+        }
+        .cp_ipselect select::-ms-expand {
+            display: none;
+        }
+        .cp_ipselect.cp_sl01 {
+            position: relative;
+            border: 1px solid #808080;
+            background: #ffffff;
+        }
+        select:disabled{
+            background: #e9e9e9;
+        }
+        .cp_ipselect.cp_sl01::before {
+            position: absolute;
+            top: 0.6rem;
+            right: 0.7em;
+            width: 0;
+            height: 0;
+            padding: 0;
+            content: "";
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #666666;
+            pointer-events: none;
+        }
+        .cp_ipselect.cp_sl01 select {
+            padding: 0 38px 12px 5px;
+            color: #000;
+        }
+</style>
+
+<script>
+    var osc;
+    var audioCtx;
+    var playing = false;
+    var time;
+    var count = [];
+    var number_played_by_now = 0;
+
+    function play(){
+        var number_playing_now = number_played_by_now + 1;
+        number_played_by_now ++;
+
+        window.AudioContext = window.AudioContext||window.webkitAudioContext;
+        var audioCtx = new AudioContext();
+
+        var hz = document.getElementById("hertz").value;
+        time = document.getElementById("time").value;
+        if(document.getElementById("timeType").value == "seconds"){//秒間なら
+            time = time*1000;
+        }else if(document.getElementById("timeType").value == "minutes"){//分間なら
+            time = time*60*1000;
+        }else{//時間なら
+            time = time*60*60*1000;
+        }
+        osc = audioCtx.createOscillator();
+        osc.frequency.value = hz;
+        var audDes = audioCtx.destination;
+        osc.connect(audDes);
+
+        document.getElementsByTagName("html")[0].style.backgroundColor = "#F94432";
+
+        //テキストボックス・を編集不可にする
+        document.getElementById("hertz").disabled = true;
+        document.getElementById("hertz").style.cursor = "wait";
+        document.getElementById("time").disabled = true;
+        document.getElementById("time").style.cursor = "wait";
+        document.getElementById("timeType").disabled = true;
+        document.getElementById("timeType").style.cursor = "wait";
+
+        document.getElementsByClassName("box")[0].style.margin = "20px 30% 0 30%";
+
+        var new_element1 = document.createElement('h1');
+        new_element1.innerText="開始";
+        new_element1.className="startEnd";
+        document.getElementById("grid").appendChild(new_element1);
+
+        var new_element1 = document.createElement("h2");
+        new_element1.innerText = "再生中";
+        new_element1.id = "playing_text";
+        new_element1.style.background = "#ff0000";
+        new_element1.style.letterSpacing = "0.5rem";
+        new_element1.style.textAlign = "center";
+        new_element1.style.color = "#fff";
+        new_element1.style.fontWeight = "900";
+        new_element1.style.fontSize = "2rem";
+        new_element1.style.margin = "0";
+        document.getElementById("title").before(new_element1);
+
+        var new_element2 = document.createElement("h2");
+        new_element2.innerHTML= "<b>"+hz+"</b>Hz";
+        new_element2.id = "hz_text";
+        new_element2.style.margin = "0.5rem 0";
+        new_element2.style.letterSpacing = "0";
+        new_element2.style.textAlign = "center";
+        new_element2.style.color = "#ff0000";
+        new_element2.style.fontWeight = "900";
+        new_element2.style.fontSize = "1.5rem";
+        document.getElementById("title").before(new_element2);
+
+        calculateTime();
+        const intervalId = setInterval(() =>{
+            calculateTime();
+            console.log(time);
+            if(time <= 0){
+                clearInterval(intervalId);
+                document.getElementById("count_down_timer").remove();
+            }
+            if(playing == false){
+                clearInterval(intervalId);
+                document.getElementById("count_down_timer").remove();
+            }
+        }, 10);
+
+        let date1 = new Date();
+        const date2 =
+        date1.getDate() + "日" +
+        date1.getHours() + ":" +
+        date1.getMinutes() + ":" +
+        date1.getSeconds() + "." +
+        date1.getMilliseconds();
+        console.log(date2);
+        var new_element1 = document.createElement('h1');
+        new_element1.innerText=date2;
+        new_element1.className="time item2";
+        document.getElementById("grid").appendChild(new_element1);
+
+        document.getElementsByTagName("button")[0].style.backgroundColor = "#F94432";
+        document.getElementsByTagName("button")[0].innerText = "停止する";
+        document.getElementsByTagName("button")[0].setAttribute("onclick", "stop()");
+
+        playing = true;
+        osc.start = osc.start || osc.noteOn;
+        osc.start();
+        setTimeout(
+            function() {
+            if(playing == true){
+                if(number_played_by_now == number_playing_now){
+                    stop();
+                }
+            }
+        }, time);
+    }
+
+
+
+function calculateTime(){
+    console.log(time);
+    if(time > 0){
+        time = time-10;//秒数を代入
+        let sec = Math.floor(time/1000) % 60;
+        let min = Math.floor(time/1000/60) % 60;
+        let hours = Math.floor(time/1000/60/60) % 24;
+        count = [hours, min, sec];
+        console.log(count);
+
+        if(document.getElementById("count_down_timer") != null){
+            document.getElementById("count_down_timer").remove();
+        }
+
+        var new_element3 = document.createElement("h2");
+            new_element3.innerHTML = "<b>"+count[0] +"</b>時間<b>"+ count[1] +"</b>分<b>" + count[2] + "</b>秒";
+            new_element3.id="count_down_timer";
+            new_element3.style.letterSpacing = "0";
+            new_element3.style.textAlign = "center";
+            new_element3.style.color = "#ff0000";
+            new_element3.style.fontWeight = "900";
+            new_element3.style.fontSize = "1.5rem";
+            new_element3.style.margin = "0";
+            document.getElementById("title").before(new_element3);
+    }
+}
+
+
+
+    function stop(){
+        osc.stop(0);
+        playing = false;
+
+        if(document.getElementById("playing_text") != null){
+            document.getElementById("playing_text").remove();
+            document.getElementById("hz_text").remove();
+        }
+
+        document.getElementsByClassName("box")[0].style.margin = "10% 30% 0 30%";
+
+        document.getElementsByTagName("button")[0].style.backgroundColor = "#5f78b4";
+        document.getElementsByTagName("button")[0].innerText = "再生する";
+
+        document.getElementsByTagName("html")[0].style.backgroundColor = "#30436e";
+
+        document.getElementById("hertz").disabled = false;
+        document.getElementById("hertz").style.cursor = "default";
+        document.getElementById("time").disabled = false;
+        document.getElementById("time").style.cursor = "default";
+        document.getElementById("timeType").disabled = false;
+        document.getElementById("timeType").style.cursor = "default";
+
+        document.getElementsByTagName("button")[0].setAttribute("onclick", "play()");
+
+        //タイマー
+        var new_element1 = document.createElement('h1');
+        new_element1.innerText="終了";
+        new_element1.className="startEnd";
+        document.getElementById("grid").appendChild(new_element1);
+
+        let date1 = new Date();
+        const date3 =
+        date1.getDate() + "日" +
+        date1.getHours() + ":" +
+        date1.getMinutes() + ":" +
+        date1.getSeconds() + "." +
+        date1.getMilliseconds();
+        console.log(date3);
+
+        //タイマー
+        var new_element1 = document.createElement('h1');
+        new_element1.innerText=date3;
+        new_element1.className="time item2";
+        document.getElementById("grid").appendChild(new_element1);
+    }
+
+
+
+    window.onbeforeunload = function(e) {
+        if(playing == true){
+            e.preventDefault();
+            return '';
+        }
+    };
+</script>
+</head>
+
+<body>
+    <div class="parent">
+        <div class="box">
+            <h1 id="title">指定周波数の音を鳴らす</h1>
+            <div id="grid">
+            <h1>音の高さ</h1>
+            <input type="text" id="hertz" value="500" placeholder='音の高さ'>
+            <h1>Hz</h1>
+            <h1>音の長さ</h1>
+            <input type="text" id="time" value="5" placeholder='長さ'>
+            <div class="cp_ipselect cp_sl01">
+                <select id="timeType">
+                    <option value="seconds">秒間</option>
+                    <option value="minutes">分間</option>
+                    <option value="hour">時間</option>
+                </select>
+            </div>
+            <button onclick="play()" class="item1">再生する</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
